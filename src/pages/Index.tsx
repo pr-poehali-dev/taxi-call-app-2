@@ -40,6 +40,9 @@ const Index = () => {
   const handleDriverArrived = () => {
     setNotification(true);
     playArrivalSound();
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 400]);
+    }
     setTimeout(() => setNotification(false), 5000);
   };
 
