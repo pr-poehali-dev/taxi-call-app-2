@@ -191,20 +191,11 @@ const MapPage = ({ onOrderStart }: MapPageProps) => {
       <div className="bottom-sheet bg-white px-5 pt-5 pb-6 z-20">
         {orderState === "idle" && (
           <div className="animate-slide-up">
-            <div className="flex gap-3 mb-4 overflow-x-auto pb-1 no-scrollbar">
-              {["Эконом", "Комфорт", "Бизнес"].map((cls, i) => (
-                <button
-                  key={cls}
-                  className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    i === 1
-                      ? "bg-taxi-yellow text-taxi-dark"
-                      : "bg-taxi-gray text-taxi-muted"
-                  }`}
-                >
-                  {cls}
-                  <span className="ml-1 text-xs">{["149₽", "249₽", "499₽"][i]}</span>
-                </button>
-              ))}
+            <div className="mb-4">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-taxi-yellow">
+                <span className="text-sm font-semibold text-taxi-dark">Эконом</span>
+                <span className="text-sm text-taxi-dark/70">149 ₽</span>
+              </div>
             </div>
             <button
               onClick={handleOrder}
