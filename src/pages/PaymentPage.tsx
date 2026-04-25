@@ -2,10 +2,10 @@ import { useState } from "react";
 import Icon from "@/components/ui/icon";
 
 const trips = [
-  { id: 1, date: "Сегодня, 14:32", from: "Тверская, 12", to: "Аэропорт Шереметьево", price: 1240, class: "Комфорт", rating: 5 },
+  { id: 1, date: "Сегодня, 14:32", from: "Тверская, 12", to: "Аэропорт Шереметьево", price: 1240, class: "Эконом", rating: 5 },
   { id: 2, date: "Вчера, 09:15", from: "Дом", to: "Офис на Садовой", price: 249, class: "Эконом", rating: 4 },
   { id: 3, date: "22 апреля, 20:44", from: "Торговый центр", to: "Парк Горького", price: 320, class: "Эконом", rating: 5 },
-  { id: 4, date: "20 апреля, 11:00", from: "Отель Метрополь", to: "Вокзал", price: 580, class: "Бизнес", rating: 4 },
+  { id: 4, date: "20 апреля, 11:00", from: "Отель Метрополь", to: "Вокзал", price: 580, class: "Эконом", rating: 4 },
 ];
 
 const cards = [
