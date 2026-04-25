@@ -1,7 +1,11 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 
-const ProfilePage = () => {
+interface ProfilePageProps {
+  onLogout: () => void;
+}
+
+const ProfilePage = ({ onLogout }: ProfilePageProps) => {
   const [notifications, setNotifications] = useState(true);
   const [darkMap, setDarkMap] = useState(false);
   const [shareLocation, setShareLocation] = useState(true);
@@ -103,16 +107,28 @@ const ProfilePage = () => {
           </div>
         )}
 
-        {/* Promo */}
-        <div className="bg-taxi-yellow rounded-2xl p-4 mb-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-taxi-dark flex items-center justify-center">
-            <Icon name="Gift" size={18} className="text-taxi-yellow" />
+        {/* Referral */}
+        <div className="bg-taxi-yellow rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-taxi-dark flex items-center justify-center">
+              <Icon name="Gift" size={18} className="text-taxi-yellow" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-taxi-dark text-sm">Пригласи друга</p>
+              <p className="text-xs text-taxi-dark/70">Получи 300 ₽ за каждого</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-taxi-dark text-sm">Пригласи друга</p>
-            <p className="text-xs text-taxi-dark/70">Получи 300 ₽ за каждого</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-taxi-dark/10 rounded-xl px-3 py-2">
+              <p className="text-sm font-bold text-taxi-dark tracking-widest">ALEX-7X42</p>
+            </div>
+            <button
+              onClick={() => navigator.clipboard?.writeText("ALEX-7X42")}
+              className="px-4 py-2 bg-taxi-dark text-white rounded-xl text-xs font-semibold"
+            >
+              Копировать
+            </button>
           </div>
-          <Icon name="ChevronRight" size={18} className="text-taxi-dark" />
         </div>
 
         {/* Settings toggles */}
@@ -163,7 +179,7 @@ const ProfilePage = () => {
           ))}
         </div>
 
-        <button className="w-full py-4 rounded-2xl border-2 border-destructive/30 text-destructive text-sm font-semibold mb-8">
+        <button onClick={onLogout} className="w-full py-4 rounded-2xl border-2 border-destructive/30 text-destructive text-sm font-semibold mb-8">
           Выйти из аккаунта
         </button>
       </div>

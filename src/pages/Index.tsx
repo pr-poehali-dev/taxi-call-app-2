@@ -5,6 +5,7 @@ import PaymentPage from "./PaymentPage";
 import RatingsPage from "./RatingsPage";
 import ProfilePage from "./ProfilePage";
 import AuthPage from "./AuthPage";
+import OnboardingPage from "./OnboardingPage";
 
 type Tab = "map" | "payment" | "ratings" | "profile";
 
@@ -16,7 +17,8 @@ const tabs: { id: Tab; icon: string; label: string }[] = [
 ];
 
 const Index = () => {
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(() => localStorage.getItem("taxi_authed") === "1");
+  const [onboarded, setOnboarded] = useState(() => localStorage.getItem("taxi_onboarded") === "1");
   const [activeTab, setActiveTab] = useState<Tab>("map");
   const [orderActive, setOrderActive] = useState(false);
   const [notification, setNotification] = useState(false);
@@ -48,10 +50,18 @@ const Index = () => {
     setTimeout(() => setNotification(false), 5000);
   };
 
+  if (!onboarded) {
+    return (
+      <div className="flex flex-col h-screen bg-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
+        <OnboardingPage onDone={() => { localStorage.setItem("taxi_onboarded", "1"); setOnboarded(true); }} />
+      </div>
+    );
+  }
+
   if (!authed) {
     return (
       <div className="flex flex-col h-screen bg-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
-        <AuthPage onAuth={() => setAuthed(true)} />
+        <AuthPage onAuth={() => { localStorage.setItem("taxi_authed", "1"); setAuthed(true); }} />
       </div>
     );
   }
@@ -102,7 +112,7 @@ const Index = () => {
           <RatingsPage />
         </div>
         <div className={`h-full overflow-y-auto ${activeTab === "profile" ? "block" : "hidden"}`}>
-          <ProfilePage />
+          <ProfilePage onLogout={() => { localStorage.removeItem("taxi_authed"); setAuthed(false); }} />
         </div>
       </div>
 

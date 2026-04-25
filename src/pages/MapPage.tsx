@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 
 interface TaxiCar {
@@ -13,6 +13,24 @@ interface MapPageProps {
   onDriverArrived: () => void;
 }
 
+const FAVORITES = [
+  { label: "Дом", icon: "Home", address: "ул. Ленина, 12" },
+  { label: "Работа", icon: "Briefcase", address: "пр. Мира, 45" },
+];
+
+const DRIVER_MESSAGES = [
+  "Буду через пару минут",
+  "Стою у главного входа",
+  "Ищу парковку рядом",
+  "Напишите, если не видите машину",
+];
+
+interface ChatMessage {
+  from: "driver" | "me";
+  text: string;
+  time: string;
+}
+
 const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
   const [pickup, setPickup] = useState("Моё местоположение");
   const [destination, setDestination] = useState("");
@@ -25,6 +43,17 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
   ]);
   const [driverPos, setDriverPos] = useState({ x: 20, y: 30 });
   const [eta, setEta] = useState(4);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { from: "driver", text: "Еду к вам, скоро буду!", time: nowTime() },
+  ]);
+  const [unread, setUnread] = useState(1);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  function nowTime() {
+    return new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
+  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -51,6 +80,8 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
       const t = setTimeout(() => {
         setOrderState("found");
         setEta(4);
+        setMessages([{ from: "driver", text: "Еду к вам, скоро буду!", time: nowTime() }]);
+        setUnread(1);
       }, 3000);
       return () => clearTimeout(t);
     }
@@ -64,6 +95,11 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
             setOrderState("riding");
             onDriverArrived();
             clearInterval(t);
+            // Auto driver message when arrived
+            setTimeout(() => {
+              setMessages(m => [...m, { from: "driver", text: "Стою у подъезда 🚖", time: nowTime() }]);
+              if (!chatOpen) setUnread(u => u + 1);
+            }, 500);
             return 0;
           }
           return prev - 1;
@@ -71,7 +107,23 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
       }, 2000);
       return () => clearInterval(t);
     }
-  }, [orderState]);
+  }, [orderState, chatOpen]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, chatOpen]);
+
+  // Periodic driver messages during riding
+  useEffect(() => {
+    if (orderState === "riding") {
+      const t = setTimeout(() => {
+        const msg = DRIVER_MESSAGES[Math.floor(Math.random() * DRIVER_MESSAGES.length)];
+        setMessages(m => [...m, { from: "driver", text: msg, time: nowTime() }]);
+        if (!chatOpen) setUnread(u => u + 1);
+      }, 5000);
+      return () => clearTimeout(t);
+    }
+  }, [orderState, messages.length]);
 
   const handleOrder = () => {
     if (!destination.trim()) return;
@@ -82,10 +134,99 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
   const handleCancel = () => {
     setOrderState("idle");
     setDestination("");
+    setChatOpen(false);
+    setMessages([]);
+    setUnread(0);
   };
+
+  const sendMessage = () => {
+    if (!chatInput.trim()) return;
+    setMessages(m => [...m, { from: "me", text: chatInput.trim(), time: nowTime() }]);
+    setChatInput("");
+    // Driver replies
+    setTimeout(() => {
+      const replies = ["Понял!", "Хорошо, жду", "Окей 👍", "Сейчас подъеду"];
+      setMessages(m => [...m, { from: "driver", text: replies[Math.floor(Math.random() * replies.length)], time: nowTime() }]);
+    }, 1500);
+  };
+
+  const openChat = () => {
+    setChatOpen(true);
+    setUnread(0);
+  };
+
+  const isOrderActive = orderState === "found" || orderState === "riding";
 
   return (
     <div className="flex flex-col h-full relative">
+      {/* Chat overlay */}
+      {chatOpen && (
+        <div className="absolute inset-0 z-40 flex flex-col bg-white animate-fade-in">
+          {/* Chat header */}
+          <div className="flex items-center gap-3 px-4 py-4 border-b border-border bg-white">
+            <button onClick={() => setChatOpen(false)} className="w-8 h-8 rounded-xl bg-taxi-gray flex items-center justify-center">
+              <Icon name="ChevronLeft" size={18} />
+            </button>
+            <div className="w-10 h-10 rounded-xl bg-taxi-gray flex items-center justify-center text-xl">👨</div>
+            <div>
+              <p className="font-semibold text-taxi-dark text-sm">Михаил Петров</p>
+              <p className="text-xs text-green-500 font-medium">● В сети</p>
+            </div>
+            <button className="ml-auto w-10 h-10 rounded-xl bg-taxi-yellow flex items-center justify-center">
+              <Icon name="Phone" size={16} className="text-taxi-dark" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-taxi-gray/30">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${
+                  msg.from === "me"
+                    ? "bg-taxi-dark text-white rounded-br-sm"
+                    : "bg-white text-taxi-dark rounded-bl-sm shadow-sm"
+                }`}>
+                  <p className="text-sm">{msg.text}</p>
+                  <p className={`text-xs mt-1 ${msg.from === "me" ? "text-white/50" : "text-taxi-muted"}`}>{msg.time}</p>
+                </div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Quick replies */}
+          <div className="px-4 pt-2 flex gap-2 overflow-x-auto pb-1">
+            {["Где вы?", "Жду у входа", "Иду уже"].map(q => (
+              <button
+                key={q}
+                onClick={() => { setChatInput(q); }}
+                className="flex-shrink-0 text-xs bg-taxi-gray px-3 py-1.5 rounded-xl text-taxi-dark font-medium"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-white">
+            <input
+              className="flex-1 bg-taxi-gray rounded-xl px-4 py-3 text-sm outline-none text-taxi-dark"
+              placeholder="Сообщение водителю..."
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && sendMessage()}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!chatInput.trim()}
+              className="w-10 h-10 rounded-xl bg-taxi-dark flex items-center justify-center disabled:opacity-40"
+            >
+              <Icon name="Send" size={16} className="text-white" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Map Area */}
       <div className="flex-1 relative bg-[#f0ede8] map-grid overflow-hidden">
         {/* Road lines */}
@@ -96,7 +237,6 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
           <line x1="30%" y1="0" x2="30%" y2="100%" stroke="#ece8e1" strokeWidth="26" strokeDasharray="40 20" />
           <line x1="0" y1="70%" x2="100%" y2="70%" stroke="#ddd6cc" strokeWidth="18" />
           <line x1="70%" y1="0" x2="70%" y2="100%" stroke="#ddd6cc" strokeWidth="18" />
-          {/* Blocks */}
           <rect x="32%" y="5%" width="36%" height="33%" rx="4" fill="#e8e4dc" />
           <rect x="32%" y="42%" width="36%" height="26%" rx="4" fill="#e8e4dc" />
           <rect x="5%" y="5%" width="23%" height="33%" rx="4" fill="#e8e4dc" />
@@ -112,13 +252,11 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
             className="absolute transition-all duration-1000 ease-linear"
             style={{ left: `${taxi.x}%`, top: `${taxi.y}%`, transform: `translate(-50%, -50%) rotate(${taxi.angle}deg)` }}
           >
-            <div className="bg-taxi-yellow rounded-full w-8 h-8 flex items-center justify-center shadow-md text-xs">
-              🚕
-            </div>
+            <div className="bg-taxi-yellow rounded-full w-8 h-8 flex items-center justify-center shadow-md text-xs">🚕</div>
           </div>
         ))}
 
-        {/* Passenger location */}
+        {/* Passenger */}
         <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}>
           <div className="relative">
             <div className="absolute inset-0 animate-ripple rounded-full bg-blue-400 opacity-30 w-8 h-8" />
@@ -126,30 +264,24 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
           </div>
         </div>
 
-        {/* Driver location (when order active) */}
-        {(orderState === "found" || orderState === "riding") && (
+        {/* Driver */}
+        {isOrderActive && (
           <div
             className="absolute transition-all duration-1000 ease-linear z-20"
             style={{ left: `${driverPos.x}%`, top: `${driverPos.y}%`, transform: "translate(-50%, -50%)" }}
           >
-            <div className="bg-taxi-dark text-taxi-yellow rounded-full w-10 h-10 flex items-center justify-center shadow-lg text-base animate-scale-in">
-              🚖
-            </div>
+            <div className="bg-taxi-dark text-taxi-yellow rounded-full w-10 h-10 flex items-center justify-center shadow-lg text-base animate-scale-in">🚖</div>
           </div>
         )}
 
         {/* Route line */}
-        {(orderState === "found" || orderState === "riding") && (
+        {isOrderActive && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            <line
-              x1={`${driverPos.x}%`} y1={`${driverPos.y}%`}
-              x2="50%" y2="50%"
-              stroke="#FFD600" strokeWidth="3" strokeDasharray="8 4"
-            />
+            <line x1={`${driverPos.x}%`} y1={`${driverPos.y}%`} x2="50%" y2="50%" stroke="#FFD600" strokeWidth="3" strokeDasharray="8 4" />
           </svg>
         )}
 
-        {/* Top search bar */}
+        {/* Search bar */}
         <div className="absolute top-4 left-4 right-4 z-30">
           <div className="bg-white rounded-2xl shadow-lg p-3 animate-fade-in">
             <div className="flex items-center gap-3 mb-2">
@@ -172,6 +304,21 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
                 disabled={orderState !== "idle"}
               />
             </div>
+            {/* Favorites */}
+            {orderState === "idle" && (
+              <div className="flex gap-2 mt-2 pt-2 border-t border-border">
+                {FAVORITES.map(fav => (
+                  <button
+                    key={fav.label}
+                    onClick={() => setDestination(fav.address)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-taxi-gray rounded-xl flex-1"
+                  >
+                    <Icon name={fav.icon} size={13} className="text-taxi-muted" />
+                    <span className="text-xs font-medium text-taxi-dark">{fav.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -218,18 +365,14 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
             </div>
             <p className="text-taxi-dark font-semibold text-base">Ищем водителя...</p>
             <p className="text-taxi-muted text-sm mt-1">Обычно не более 2 минут</p>
-            <button onClick={handleCancel} className="mt-3 text-sm text-taxi-muted underline">
-              Отменить
-            </button>
+            <button onClick={handleCancel} className="mt-3 text-sm text-taxi-muted underline">Отменить</button>
           </div>
         )}
 
         {orderState === "found" && (
           <div className="animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-taxi-gray flex items-center justify-center text-xl">
-                👨
-              </div>
+              <div className="w-12 h-12 rounded-2xl bg-taxi-gray flex items-center justify-center text-xl">👨</div>
               <div className="flex-1">
                 <p className="font-semibold text-taxi-dark">Михаил Петров</p>
                 <div className="flex items-center gap-1">
@@ -247,8 +390,15 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
                 <Icon name="Phone" size={16} className="inline mr-2" />
                 Позвонить
               </button>
-              <button onClick={handleCancel} className="flex-1 py-3 rounded-2xl bg-taxi-gray text-taxi-muted font-semibold">
-                Отменить
+              <button onClick={openChat} className="relative flex-1 py-3 rounded-2xl bg-taxi-gray text-taxi-dark font-semibold">
+                <Icon name="MessageCircle" size={16} className="inline mr-2" />
+                Чат
+                {unread > 0 && (
+                  <span className="absolute top-2 right-3 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold">{unread}</span>
+                )}
+              </button>
+              <button onClick={handleCancel} className="px-4 py-3 rounded-2xl bg-taxi-gray text-taxi-muted font-semibold text-sm">
+                ✕
               </button>
             </div>
           </div>
@@ -265,12 +415,19 @@ const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
                 <p className="text-sm text-taxi-muted">Вы едете к цели</p>
               </div>
               <div className="ml-auto bg-taxi-gray px-3 py-1 rounded-xl">
-                <p className="text-sm font-medium">249 ₽</p>
+                <p className="text-sm font-medium">149 ₽</p>
               </div>
             </div>
-            <div className="w-full bg-taxi-gray rounded-full h-2">
+            <div className="w-full bg-taxi-gray rounded-full h-2 mb-3">
               <div className="bg-taxi-yellow h-2 rounded-full animate-pulse" style={{ width: "60%" }} />
             </div>
+            <button onClick={openChat} className="relative w-full py-3 rounded-2xl bg-taxi-gray text-taxi-dark font-semibold text-sm flex items-center justify-center gap-2">
+              <Icon name="MessageCircle" size={16} />
+              Написать водителю
+              {unread > 0 && (
+                <span className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold ml-1">{unread}</span>
+              )}
+            </button>
           </div>
         )}
       </div>
