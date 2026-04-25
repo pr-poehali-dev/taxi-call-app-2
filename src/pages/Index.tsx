@@ -17,6 +17,12 @@ const tabs: { id: Tab; icon: string; label: string }[] = [
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>("map");
   const [orderActive, setOrderActive] = useState(false);
+  const [notification, setNotification] = useState(false);
+
+  const handleDriverArrived = () => {
+    setNotification(true);
+    setTimeout(() => setNotification(false), 5000);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
@@ -36,8 +42,26 @@ const Index = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-hidden relative">
+        {/* Driver arrived notification */}
+        {notification && (
+          <div className="absolute top-3 left-4 right-4 z-50 animate-slide-up">
+            <div className="bg-taxi-dark rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
+              <div className="w-10 h-10 rounded-xl bg-taxi-yellow flex items-center justify-center text-xl flex-shrink-0">
+                🚖
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm">Водитель прибыл!</p>
+                <p className="text-taxi-muted text-xs">Михаил ждёт вас у подъезда</p>
+              </div>
+              <button onClick={() => setNotification(false)} className="text-taxi-muted">
+                <Icon name="X" size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={`h-full ${activeTab === "map" ? "block" : "hidden"}`}>
-          <MapPage onOrderStart={() => setOrderActive(true)} />
+          <MapPage onOrderStart={() => setOrderActive(true)} onDriverArrived={handleDriverArrived} />
         </div>
         <div className={`h-full overflow-y-auto ${activeTab === "payment" ? "block" : "hidden"}`}>
           <PaymentPage />

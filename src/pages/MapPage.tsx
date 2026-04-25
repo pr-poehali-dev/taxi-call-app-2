@@ -10,9 +10,10 @@ interface TaxiCar {
 
 interface MapPageProps {
   onOrderStart: () => void;
+  onDriverArrived: () => void;
 }
 
-const MapPage = ({ onOrderStart }: MapPageProps) => {
+const MapPage = ({ onOrderStart, onDriverArrived }: MapPageProps) => {
   const [pickup, setPickup] = useState("Моё местоположение");
   const [destination, setDestination] = useState("");
   const [orderState, setOrderState] = useState<"idle" | "searching" | "found" | "riding">("idle");
@@ -61,6 +62,7 @@ const MapPage = ({ onOrderStart }: MapPageProps) => {
         setEta(prev => {
           if (prev <= 1) {
             setOrderState("riding");
+            onDriverArrived();
             clearInterval(t);
             return 0;
           }
