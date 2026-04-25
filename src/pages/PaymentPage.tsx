@@ -13,12 +13,25 @@ const cards = [
   { id: 2, type: "mastercard", last4: "8731", label: "Mastercard", active: false },
 ];
 
+const drivers = ["Михаил П.", "Дмитрий С.", "Алексей И.", "Владимир К."];
+
 const PaymentPage = () => {
   const [tab, setTab] = useState<"methods" | "history">("methods");
   const [selectedCard, setSelectedCard] = useState(1);
   const [addingCard, setAddingCard] = useState(false);
+  const [reviewTripId, setReviewTripId] = useState<number | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [submittedReviews, setSubmittedReviews] = useState<Set<number>>(new Set());
 
   const totalSpent = trips.reduce((s, t) => s + t.price, 0);
+
+  const handleSubmitReview = (tripId: number) => {
+    setSubmittedReviews(prev => new Set(prev).add(tripId));
+    setReviewTripId(null);
+    setReviewRating(0);
+    setReviewText("");
+  };
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -161,13 +174,64 @@ const PaymentPage = () => {
                       <p className="text-sm text-taxi-dark truncate">{trip.to}</p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <span key={i} className={i < trip.rating ? "star-filled text-sm" : "star-empty text-sm"}>★</span>
-                      ))}
-                    </div>
-                    <button className="text-xs text-taxi-muted underline">Подробнее</button>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    {submittedReviews.has(trip.id) ? (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <Icon name="CheckCircle" size={14} />
+                        <span className="text-xs font-medium">Отзыв отправлен</span>
+                      </div>
+                    ) : reviewTripId === trip.id ? (
+                      <div className="animate-fade-in">
+                        <p className="text-xs font-semibold text-taxi-dark mb-2">
+                          Водитель: {drivers[trip.id - 1]}
+                        </p>
+                        <div className="flex gap-1 mb-3">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setReviewRating(i + 1)}
+                              className={`text-2xl transition-transform hover:scale-110 ${i < reviewRating ? "star-filled" : "star-empty"}`}
+                            >★</button>
+                          ))}
+                        </div>
+                        <textarea
+                          className="w-full border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-taxi-yellow resize-none mb-2"
+                          rows={2}
+                          placeholder="Комментарий (необязательно)"
+                          value={reviewText}
+                          onChange={e => setReviewText(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSubmitReview(trip.id)}
+                            disabled={reviewRating === 0}
+                            className="flex-1 py-2 rounded-xl bg-taxi-dark text-white text-xs font-semibold disabled:opacity-40"
+                          >
+                            Отправить
+                          </button>
+                          <button
+                            onClick={() => { setReviewTripId(null); setReviewRating(0); setReviewText(""); }}
+                            className="px-4 py-2 rounded-xl bg-taxi-gray text-taxi-muted text-xs"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <span key={i} className={i < trip.rating ? "star-filled text-sm" : "star-empty text-sm"}>★</span>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => { setReviewTripId(trip.id); setReviewRating(trip.rating); }}
+                          className="text-xs text-taxi-dark font-medium bg-taxi-gray px-3 py-1.5 rounded-lg"
+                        >
+                          Оставить отзыв
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
