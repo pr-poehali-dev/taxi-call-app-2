@@ -4,6 +4,7 @@ import MapPage from "./MapPage";
 import PaymentPage from "./PaymentPage";
 import RatingsPage from "./RatingsPage";
 import ProfilePage from "./ProfilePage";
+import AuthPage from "./AuthPage";
 
 type Tab = "map" | "payment" | "ratings" | "profile";
 
@@ -15,6 +16,7 @@ const tabs: { id: Tab; icon: string; label: string }[] = [
 ];
 
 const Index = () => {
+  const [authed, setAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("map");
   const [orderActive, setOrderActive] = useState(false);
   const [notification, setNotification] = useState(false);
@@ -45,6 +47,14 @@ const Index = () => {
     }
     setTimeout(() => setNotification(false), 5000);
   };
+
+  if (!authed) {
+    return (
+      <div className="flex flex-col h-screen bg-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
+        <AuthPage onAuth={() => setAuthed(true)} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
